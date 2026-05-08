@@ -476,7 +476,7 @@ function roundNumbersInObject(obj: any): any {
   return obj;
 }
 
-async function getChainDefaultChartData(chartBody: any) {
+export async function getChainDefaultChartData(chartBody: any) {
   const tvl = Object.fromEntries(chartBody.tvl);
 
   chartBody.doublecounted?.forEach(([date, value]: [string, number]) => {
@@ -499,6 +499,6 @@ async function getChainDefaultChartData(chartBody: any) {
 
   return Object.entries(tvl).map((v: any) => ({
     date: Number(v[0]),
-    tvl: Number(v[1]),
+    tvl: Math.max(Number(v[1]), 0),
   }))
 }
