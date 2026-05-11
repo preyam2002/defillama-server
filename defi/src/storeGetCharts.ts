@@ -435,7 +435,7 @@ export async function storeGetCharts({ ...options }: any = {}) {
         const simpleChartFile = chain === "total" ? "charts-total" : `charts/${chain}`;
         await storeRouteData(simpleChartFile, simpleChartData)
 
-        const historicalTvlChartData = await getChainDefaultChartData(data)
+        const historicalTvlChartData = getChainDefaultChartData(data)
         const historicalTvlChartFile = chain === "total" ? "v2/historicalChainTvl-total" : `v2/historicalChainTvl/${chain}`;
         await storeRouteData(historicalTvlChartFile, historicalTvlChartData)
       }
@@ -476,7 +476,16 @@ function roundNumbersInObject(obj: any): any {
   return obj;
 }
 
-export async function getChainDefaultChartData(chartBody: any) {
+type ChainDefaultChartSection = [string, number][];
+
+interface ChainDefaultChartDataBody {
+  tvl: ChainDefaultChartSection;
+  doublecounted?: ChainDefaultChartSection;
+  liquidstaking?: ChainDefaultChartSection;
+  dcAndLsOverlap?: ChainDefaultChartSection;
+}
+
+export function getChainDefaultChartData(chartBody: ChainDefaultChartDataBody) {
   const tvl = Object.fromEntries(chartBody.tvl);
 
   chartBody.doublecounted?.forEach(([date, value]: [string, number]) => {
@@ -497,8 +506,8 @@ export async function getChainDefaultChartData(chartBody: any) {
     }
   });
 
-  return Object.entries(tvl).map((v: any) => ({
-    date: Number(v[0]),
-    tvl: Math.max(Number(v[1]), 0),
+  return Object.entries(tvl).map(([date, value]) => ({
+    date: Number(date),
+    tvl: Math.max(value, 0),
   }))
 }
