@@ -29,6 +29,7 @@ import { saveEvent } from "../../dexAggregators/db/saveEvent";
 import { reportError } from "../../reportError";
 import { reportError as reportSupport } from "../../reportSupport";
 import { saveBlacklistPemrit } from "../../dexAggregators/db/saveBlacklistPemrit";
+import { chainChartFileResponse } from "./chainRouteAliases";
 
 export default function setRoutes(router: HyperExpress.Router, routerBasePath: string) {
   // todo add logging middleware to all routes
@@ -66,7 +67,7 @@ export default function setRoutes(router: HyperExpress.Router, routerBasePath: s
   // router.get("/rwa/historical/:name", ew(async (req: any, res: any) => rwaChartHandler(req, res)));
   router.get("/categories", defaultFileHandler);
   router.get("/langs", defaultFileHandler);
-  router.get("/lite/charts/:chain", defaultFileHandler);
+  router.get("/lite/charts/:chain", chainChartFileHandler);
   // router.get("/lite/charts/categories/:category", defaultFileHandler); // deprecated, replaced by getCategoryChartByChainData - used to be a r2 wrapper
   router.get("/lite/chains-by-categories", defaultFileHandler);
   router.get("/lite/chains-by-tags", defaultFileHandler);
@@ -107,9 +108,9 @@ export default function setRoutes(router: HyperExpress.Router, routerBasePath: s
   // router.get("/chain-assets/historical-flows/:chain/:period", ew(async (req: any, res: any) => chainAssetsHandler(req, res, { isFlows: true, isHistorical: true })));
 
   router.get("/charts", v1ChartsGlobalResponse)
-  router.get("/charts/:name", defaultFileHandler)
+  router.get("/charts/:name", chainChartFileHandler)
   router.get("/v2/historicalChainTvl", historicalChainTvlGlobalResponse)
-  router.get("/v2/historicalChainTvl/:name", defaultFileHandler)
+  router.get("/v2/historicalChainTvl/:name", chainChartFileHandler)
 
   router.get("/overview/:type", ew(getOverviewFileRoute))
   router.get("/overview/:type/:chain", ew(getOverviewFileRoute))
@@ -225,6 +226,26 @@ export default function setRoutes(router: HyperExpress.Router, routerBasePath: s
       const normalizedPath = path.normalize(filePath.replace(/^\/+/, ''));
 
       // Check for path traversal attempts
+      if (normalizedPath.includes('..') || normalizedPath.startsWith('/') || path.isAbsolute(normalizedPath)) {
+        return null;
+      }
+
+      return normalizedPath;
+    }
+  }
+
+  function chainChartFileHandler(req: HyperExpress.Request, res: HyperExpress.Response) {
+    const fullPath = req.path;
+    const routerPath = fullPath.replace(routerBasePath, '');
+    const sanitizedPath = sanitizePath(routerPath);
+    if (!sanitizedPath) {
+      return errorResponse(res, 'Invalid path', { statusCode: 400 });
+    }
+    return chainChartFileResponse(sanitizedPath, res);
+
+    function sanitizePath(filePath: string): string | null {
+      const normalizedPath = path.normalize(filePath.replace(/^\/+/, ''));
+
       if (normalizedPath.includes('..') || normalizedPath.startsWith('/') || path.isAbsolute(normalizedPath)) {
         return null;
       }
