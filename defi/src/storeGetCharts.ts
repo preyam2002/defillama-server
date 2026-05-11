@@ -485,6 +485,11 @@ interface ChainDefaultChartDataBody {
   dcAndLsOverlap?: ChainDefaultChartSection;
 }
 
+/**
+ * Builds the default historical chain TVL chart after removing excluded sections,
+ * restoring overlap between liquid staking and double-counted TVL, and clamping
+ * tiny negative residuals to zero.
+ */
 export function getChainDefaultChartData(chartBody: ChainDefaultChartDataBody) {
   const tvl = Object.fromEntries(chartBody.tvl);
 
