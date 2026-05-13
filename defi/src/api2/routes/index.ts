@@ -35,6 +35,8 @@ export default function setRoutes(router: HyperExpress.Router, routerBasePath: s
   // todo add logging middleware to all routes
   // router.get("/config/:chain/:contract", ew(getContractName));  // too many requests to handle here
   // add secret route to delete from PG cache
+  const defaultFileHandler = createFileHandler(fileResponse);
+  const chainChartFileHandler = createFileHandler(chainChartFileResponse);
 
   router.get("/protocol/:name", ew(async (req: any, res: any) => getProtocolishData(req, res, {
     dataType: 'protocol', skipAggregatedTvl: false, useNewChainNames: false, restrictResponseSize: req.query_parameters.restrictResponseSize !== 'false'
@@ -211,24 +213,15 @@ export default function setRoutes(router: HyperExpress.Router, routerBasePath: s
   router.post("/historicalLiquidity/:token", ew(getHistoricalLiquidityHandler)) // TODO: ensure that env vars are set
 
 
-  function defaultFileHandler(req: HyperExpress.Request, res: HyperExpress.Response) {
-    const fullPath = req.path;
-    const routerPath = fullPath.replace(routerBasePath, '');
-    const sanitizedPath = sanitizeRoutePath(routerPath);
-    if (!sanitizedPath) {
-      return errorResponse(res, 'Invalid path', { statusCode: 400 });
+  function createFileHandler(responseHandler: (filePath: string, res: HyperExpress.Response) => any) {
+    return function routeFileHandler(req: HyperExpress.Request, res: HyperExpress.Response) {
+      const routerPath = req.path.replace(routerBasePath, '');
+      const sanitizedPath = sanitizeRoutePath(routerPath);
+      if (!sanitizedPath) {
+        return errorResponse(res, 'Invalid path', { statusCode: 400 });
+      }
+      return responseHandler(sanitizedPath, res);
     }
-    return fileResponse(sanitizedPath, res);
-  }
-
-  function chainChartFileHandler(req: HyperExpress.Request, res: HyperExpress.Response) {
-    const fullPath = req.path;
-    const routerPath = fullPath.replace(routerBasePath, '');
-    const sanitizedPath = sanitizeRoutePath(routerPath);
-    if (!sanitizedPath) {
-      return errorResponse(res, 'Invalid path', { statusCode: 400 });
-    }
-    return chainChartFileResponse(sanitizedPath, res);
   }
 
   function sanitizeRoutePath(filePath: string): string | null {
