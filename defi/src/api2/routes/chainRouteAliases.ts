@@ -1,31 +1,17 @@
 import * as HyperExpress from "hyper-express";
 import { chainCoingeckoIds, getChainDisplayName, getChainIdFromDisplayName } from "../../utils/normalizeChain";
-import { readRouteData } from "../cache/file-cache";
 import { fileResponse } from "./utils";
 
 const chainRoutePrefixes = ["v2/historicalChainTvl", "lite/charts", "charts"];
 
-export function getChainRouteFilePaths(routePath: string) {
-  const aliasedPath = getAliasedChainRoutePath(routePath);
-  if (!aliasedPath) return [routePath];
-  return [routePath, aliasedPath];
+// chart files are only ever stored under current chain labels, so requests using
+// old labels (charts/Optimism) are rewritten to the current one (charts/OP Mainnet)
+export function resolveChainRoutePath(routePath: string) {
+  return getAliasedChainRoutePath(routePath) ?? routePath;
 }
 
-export async function chainChartFileResponse(routePath: string, res: HyperExpress.Response) {
-  const aliasedPath = getAliasedChainRoutePath(routePath);
-  if (!aliasedPath) return fileResponse(routePath, res);
-
-  const primaryData = await readRouteData(routePath, {
-    readAsArrayBuffer: true,
-    skipErrorLog: true,
-  });
-  if (primaryData) {
-    res.set('Cache-Control', 'public, max-age=600');
-    res.set('Content-Type', 'application/json');
-    return res.send(primaryData);
-  }
-
-  return fileResponse(aliasedPath, res);
+export function chainChartFileResponse(routePath: string, res: HyperExpress.Response) {
+  return fileResponse(resolveChainRoutePath(routePath), res);
 }
 
 function getAliasedChainRoutePath(routePath: string) {
