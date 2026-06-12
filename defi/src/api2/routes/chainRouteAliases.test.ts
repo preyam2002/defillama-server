@@ -22,6 +22,18 @@ describe("resolveChainRoutePath", () => {
     expect(resolveChainRoutePath("charts/OP%20Mainnet")).toEqual("charts/OP%20Mainnet");
     expect(resolveChainRoutePath("charts/Ethereum")).toEqual("charts/Ethereum");
   });
+
+  it("leaves malformed or unknown segments untouched", () => {
+    expect(resolveChainRoutePath("charts/NonexistentChain")).toEqual("charts/NonexistentChain");
+    expect(resolveChainRoutePath("charts/%ZZ")).toEqual("charts/%ZZ");
+    expect(resolveChainRoutePath("charts/")).toEqual("charts/");
+    expect(resolveChainRoutePath("charts/Ethereum/extra")).toEqual("charts/Ethereum/extra");
+  });
+
+  it("rejects chain segments with an encoded slash", () => {
+    expect(resolveChainRoutePath("charts/Optimism%2Fextra")).toEqual("charts/Optimism%2Fextra");
+    expect(resolveChainRoutePath("lite/charts/xDai%2F..")).toEqual("lite/charts/xDai%2F..");
+  });
 });
 
 describe("chainChartFileResponse", () => {
